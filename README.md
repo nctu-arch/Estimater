@@ -6,5 +6,5 @@
 
 - You can run:
 
-    perl /path/to/Performance_estimation_tool.pl -f /path/to/model.json -o /path/to/Result.csv
+    perl /path/to/Estimater.pl -f /path/to/model.json -o /path/to/Result.csv
 
