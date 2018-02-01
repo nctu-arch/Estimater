@@ -1,6 +1,6 @@
 # Estimater
 
-> Step to run this script
+> Steps to run this script
 1. Transfer model description(Caffee, TensorFlow...etc) to representation of NNVM(.json).
 2. Input the representation and execute with Performance estimation tool.
 
