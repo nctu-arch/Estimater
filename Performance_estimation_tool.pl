@@ -2,34 +2,19 @@
 #use strict;
 use POSIX;
 ### Hardware config(Set from "hw_config.pl" file) ###
-#require "hw_config.pl";
-#-------------------------------#
-### Hardware config ###
-# Type of data(Byte)
-my $byteInputData = 2;
-my $byteWeightData = 2;
+require './hw_config.pl';
+our $byteInputData;
+our $byteWeightData;
+our $bufConvInput;
+our $numMultiplier;
+our $freq;
+our $bwSRAM;
+our $bwDRAM;
+our $batchFc;
+our $numInputFeatureMapsC0;
+our $lenInputHeightH0;
+our $lenInputWidthW0;
 
-# Size of convolution input buffer(KB)
-my $bufConvInput = 512;
-
-# Number of Multiplier(16bit)
-my $numMultiplier = 1024;
-
-# Frequency(MHz)
-my $freq = 1000;
-
-# Bandwidth of memory(Gbps)
-my $bwSRAM = 25;
-my $bwDRAM = 10;
-
-# Batch size of FC
-my $batchFc = 16;
-
-### First input size ###
-my $numInputFeatureMapsC0 = 1;
-my $lenInputHeightH0 = 28;
-my $lenInputWidthW0 = 28;
-#-------------------------------#
 ### Define of Parameters of layer ###
 my $index = 0;
 my $attribute;
@@ -83,6 +68,22 @@ my $pole;
 my $filenameInput = "mnist.json";
 my $filenameOutput = "Result.csv";
 
+my $command = '';
+while(!$command){
+	$command = shift;
+	if($command eq '-f'){
+		$command = shift;
+		$filenameInput = $command;
+	}elsif($command eq '-o'){
+		$command = shift;
+		$filenameOutput = $command;
+	}else{
+		print '[Error] Please follow format: perl /path/to/Performance_estimation_tool.pl -f /path/to/model.json -o /path/to/Result.csv';
+		exit;
+	}
+}
+print $filenameInput;
+
 # Open files
 open (FILEIN, $filenameInput);
 open (FILEOUT, '>', $filenameOutput);
@@ -99,7 +100,7 @@ $lenInputWidthW = $lenInputWidthW0;
 
 # Output result
 print FILEOUT "Layer, Layer attribute, Layer name, #input feature maps(C), Input Height(H), Input Width(W), #output feature maps(K), Filter Height(R), Filter Width(S), Zero Padding(Z), Vertical Conv Srtide(H), Horizontal Conv Stride(V), Height after Conv(P), Width after Conv(Q), Pooling after Conv, Pooling Height(D), Pooling Width(E), Vertical pooling stride(F), Horizontal pooling stride(G), Height after Pooling(A), Height after Pooling(B), Calculation, Input data size, Output data size, Weight data size, DRAM Traffic, DRAM Cycles, MAC Cycles, MAX Cycle, Long Pole\n";
-		
+
 # Main loop for parsing
 while ($record = <FILEIN>) {
    # print "$record\n";
@@ -360,5 +361,3 @@ if($resultCnt >= 1){
 
 close(FILEIN);
 close(FILEOUT); 
-
-
