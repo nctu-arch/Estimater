@@ -74,15 +74,16 @@ while(!$command){
 	if($command eq '-f'){
 		$command = shift;
 		$filenameInput = $command;
-	}elsif($command eq '-o'){
+	}
+	if($command eq '-o'){
 		$command = shift;
 		$filenameOutput = $command;
-	}else{
-		print '[Error] Please follow format: perl /path/to/Performance_estimation_tool.pl -f /path/to/model.json -o /path/to/Result.csv';
-		exit;
 	}
+	# else{
+		# print '[Error] Please follow format: perl /path/to/Performance_estimation_tool.pl -f /path/to/model.json -o /path/to/Result.csv';
+		# exit;
+	# }
 }
-print $filenameInput;
 
 # Open files
 open (FILEIN, $filenameInput);
