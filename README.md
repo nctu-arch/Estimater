@@ -9,7 +9,7 @@ Estimater is a hardware evaluation script for deep learning models. It uses form
 
 > perl /path/to/Estimater.pl -f /path/to/model.json -o /path/to/Result.csv
 
-Verification with simulation
+Verification
 --------------------------------
 Benchmark Generator script can be used to generate configurations setting and trigger commands of accelerator for different models layer by layer. We can use generated instructions to run an actual accelerator with simulation.
 
