@@ -13,7 +13,7 @@ Estimater is a hardware evaluation script for deep learning models. It uses form
 
 Verification with simulation
 --------------------------------
-Benchmark Generator script can be used to generate configurations setting and trigger commands of accelerator layer by layer for different models. We can use generated instruction to run an actual accelerator with simulation.
+Benchmark Generator script can be used to generate configurations setting and trigger commands of accelerator for different models layer by layer. We can use generated instructions to run an actual accelerator with simulation.
 
 > Steps to run Benchmark Generator
 1. Transfer model description(Caffee, TensorFlow...etc) to representation of NNVM(.json).
