@@ -7,7 +7,7 @@ Estimater is a hardware evaluation script for deep learning models. It uses form
 2. Set hardware configure(hw_config.pl).
 3. Input the representation and execute with Performance estimation tool(Estimater.pl).
 
-> perl /path/to/Estimater.pl -f /path/to/model.json -o /path/to/Result.csv
+> perl /path/to/Performance_Estimater.pl -f /path/to/model.json -o /path/to/Result.csv
 
 Verification
 --------------------------------
