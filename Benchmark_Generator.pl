@@ -16,6 +16,19 @@ our $numInputFeatureMapsC0;
 our $lenInputHeightH0;
 our $lenInputWidthW0;
 
+our $ratioWeightCompression;
+our $swWinogradConv;
+our $swBatchedConv;
+our $swActivationEngine;
+our $swBDMAEngine;
+our $DataReshapeEngine;
+our $PoolingEngine;
+our $LRNEngine;
+our $sizeActivationEngine;
+our $sizePoolingEngine;
+our $sizeLRNEngine;
+our $maxMemoryReadLatency;
+
 #-------------------------------#
 ### Define of HW Module Config Address ###
 my $GLB_base = 0x0;
@@ -69,67 +82,44 @@ my $CDP_EN = 0x0;
 my $RUBIK_EN = 0x0;
 
 ### Default config hash ###
+# ENABLE
+my %enBlock;
 # Load
 my %dataLoad;
 # BDMA
 my %confBDMA = (
 );
 # CDMA
-my %confCDMA = (
-	0xffff140a => 0x1000a, 		#NVDLA_CDMA.D_PIXEL_OFFSET_0
-	0xffff141f => 0x50035400, 	#NVDLA_CDMA.D_WEIGHT_ADDR_LOW_0
-	0xffff142d => 0x1010101, 	#NVDLA_CDMA.D_ZERO_PADDING_0
-	0xffff1427 => 0x441097f1, 	#NVDLA_CDMA.D_MEAN_GLOBAL_0_0
-	0xffff1412 => 0x1520, 		#NVDLA_CDMA.D_SURF_STRIDE_0
-	0xffff1420 => 0x1b0000, 	#NVDLA_CDMA.D_WEIGHT_BYTES_0
-	0xffff1408 => 0x17f, 		#NVDLA_CDMA.D_DATAIN_SIZE_1_0
-	0xffff141c => 0xff, 		#NVDLA_CDMA.D_WEIGHT_SIZE_1_0
-	0xffff142f => 0xb0003, 		#NVDLA_CDMA.D_BANK_0
-	0xffff1430 => 0x1, 			#NVDLA_CDMA.D_NAN_FLUSH_TO_ZERO_0
-	0xffff1407 => 0xc000c, 		#NVDLA_CDMA.D_DATAIN_SIZE_0_0
-	0xffff140e => 0x85, 		#NVDLA_CDMA.D_DAIN_ADDR_HIGH_1_0
-	0xffff1410 => 0x1a0, 		#NVDLA_CDMA.D_LINE_STRIDE_0
-	0xffff1406 => 0x110e00, 	#NVDLA_CDMA.D_DATAIN_FORMAT_0
-	0xffff1423 => 0x3e, 		#NVDLA_CDMA.D_WMB_ADDR_HIGH_0
-	0xffff140d => 0x50015600, 	#NVDLA_CDMA.D_DAIN_ADDR_LOW_0_0
-	0xffff1422 => 0xda70d100, 	#NVDLA_CDMA.D_WGS_ADDR_LOW_0
-	0xffff1428 => 0xb4ef7ece, 	#NVDLA_CDMA.D_MEAN_GLOBAL_1_0
-	0xffff1426 => 0x1, 			#NVDLA_CDMA.D_MEAN_FORMAT_0
-	0xffff1409 => 0xc000c, 		#NVDLA_CDMA.D_DATAIN_SIZE_EXT_0_0
-	0xffff1405 => 0x1001100, 	#NVDLA_CDMA.D_MISC_CFG_0
-	0xffff1418 => 0x4d, 		#NVDLA_CDMA.D_ENTRY_PER_SLICE_0
-	0xffff1411 => 0xecda72e0, 	#NVDLA_CDMA.D_LINE_UV_STRIDE_0
-	0xffff140f => 0x8063e800, 	#NVDLA_CDMA.D_DAIN_ADDR_LOW_1_0
-	0xffff141b => 0x1aff, 		#NVDLA_CDMA.D_WEIGHT_SIZE_0_0
-	0xffff1424 => 0x5215c000, 	#NVDLA_CDMA.D_WMB_ADDR_LOW_0
-	0xffff1413 => 0x10001, 		#NVDLA_CDMA.D_DAIN_MAP_0
-	0xffff143a => 0x7841af46, 	#NVDLA_CDMA.D_CYA_0
-	0xffff1417 => 0xef60180, 	#NVDLA_CDMA.D_BATCH_STRIDE_0
-	0xffff1419 => 0xa, 			#NVDLA_CDMA.D_FETCH_GRAIN_0
-	0xffff1414 => 0x36c0098, 	#NVDLA_CDMA.D_RESERVED_X_CFG_0
-	0xffff1425 => 0x6a0180, 	#NVDLA_CDMA.D_WMB_BYTES_0
-	0xffff1402 => 0x10001, 		#NVDLA_CDMA.S_ARBITER_0
-	0xffff142b => 0x1, 			#NVDLA_CDMA.D_CVT_SCALE_0
-	0xffff1415 => 0x110007, 	#NVDLA_CDMA.D_RESERVED_Y_CFG_0	
+my %confCDMA = (	
+	0xffff1402 => 0x3000f, 		#NVDLA_CDMA.S_ARBITER_0ARB_WEIGHT=15, ARB_WMB=3
+	0xffff1405 => 0x11001100, 	#NVDLA_CDMA.D_MISC_CFG_0FULL_INPUT, FULL_WEIGHT, DIRECT, IN/OUT: INT16
+	0xffff1407 => 0x70007, 		#NVDLA_CDMA.D_DATAIN_SIZE_0_08x8
+	0xffff1408 => 0x1f, 		#NVDLA_CDMA.D_DATAIN_SIZE_1_0Channel: 32
+	0xffff140b => 0x1, 			#NVDLA_CDMA.D_DAIN_RAM_TYPE_0MC
+	0xffff140d => 0x80000000, 	#NVDLA_CDMA.D_DAIN_ADDR_LOW_0_00MB
+	0xffff1410 => 0x100, 		#NVDLA_CDMA.D_LINE_STRIDE_0
+	0xffff1412 => 0x800, 		#NVDLA_CDMA.D_SURF_STRIDE_0
+	0xffff1413 => 0x10001, 		#NVDLA_CDMA.D_DAIN_MAP_0LINE_PACKED, SURF_PACKED
+	0xffff1418 => 0x3, 			#NVDLA_CDMA.D_ENTRY_PER_SLICE_0
+	0xffff141b => 0xfff, 		#NVDLA_CDMA.D_WEIGHT_SIZE_0_00x1000-1
+	0xffff141c => 0xf, 			#NVDLA_CDMA.D_WEIGHT_SIZE_1_0
+	0xffff141d => 0x1, 			#NVDLA_CDMA.D_WEIGHT_RAM_TYPE_0MC
+	0xffff141f => 0x80100000, 	#NVDLA_CDMA.D_WEIGHT_ADDR_LOW_01MB
+	0xffff1420 => 0x10000, 		#NVDLA_CDMA.D_WEIGHT_BYTES_0
+	0xffff142f => 0x20001, 		#NVDLA_CDMA.D_BANK_0
 );
 # CSC
 my %confCSC = (
-	0xffff1803 => 0x10001,		#NVDLA_CSC.D_ZERO_PADDING_0
-	0xffff1815 => 0x1001100, 	#NVDLA_CSC.D_MISC_CFG_0
-	0xffff180e => 0x6a0180,		#NVDLA_CSC.D_WMB_BYTES_0
-	0xffff1805 => 0xc000c,		#NVDLA_CSC.D_DATAIN_SIZE_EXT_0_0
-	0xffff180b => 0x20002,		#NVDLA_CSC.D_WEIGHT_SIZE_EXT_0_0
-	0xffff1810 => 0xff,			#NVDLA_CSC.D_DATAOUT_SIZE_1_0
-	0xffff1811 => 0xa8, 		#NVDLA_CSC.D_ATOMICS_0
-	0xffff180c => 0xff017f,		#NVDLA_CSC.D_WEIGHT_SIZE_EXT_1_0
-	0xffff1809 => 0x4d,			#NVDLA_CSC.D_ENTRY_PER_SLICE_0
-	0xffff180f => 0xc000c, 		#NVDLA_CSC.D_DATAOUT_SIZE_0_0
-	0xffff1818 => 0x1, 			#NVDLA_CSC.D_PRA_CFG_0
-	0xffff1812 => 0x1, 			#NVDLA_CSC.D_RELEASE_0
-	0xffff1806 => 0x17f, 		#NVDLA_CSC.D_DATAIN_SIZE_EXT_1_0
-	0xffff1819 => 0x7841af46, 	#NVDLA_CSC.D_CYA_0
-	0xffff1817 => 0xb0003, 		#NVDLA_CSC.D_BANK_0
-	0xffff180d => 0x1b0000, 	#NVDLA_CSC.D_WEIGHT_BYTES_0
+	0xffff1803 => 0x11001100, 	#NVDLA_CSC.D_MISC_CFG_0DIRECT, IN/OUT: INT16
+	0xffff1805 => 0x70007, 		#NVDLA_CSC.D_DATAIN_SIZE_EXT_0_08x8
+	0xffff1806 => 0x1f, 		#NVDLA_CSC.D_DATAIN_SIZE_EXT_1_0channel: 32
+	0xffff1809 => 0x3, 			#NVDLA_CSC.D_ENTRY_PER_SLICE_0
+	0xffff180b => 0x70007, 		#NVDLA_CSC.D_WEIGHT_SIZE_EXT_0_0
+	0xffff180c => 0xf001f, 		#NVDLA_CSC.D_WEIGHT_SIZE_EXT_1_0
+	0xffff180d => 0x10000, 		#NVDLA_CSC.D_WEIGHT_BYTES_0
+	0xffff180f => 0x0, 			#NVDLA_CSC.D_DATAOUT_SIZE_0_0
+	0xffff1810 => 0xf, 			#NVDLA_CSC.D_DATAOUT_SIZE_1_0
+	0xffff1817 => 0x20001, 		#NVDLA_CSC.D_BANK_0
 );
 # CMAC_A
 my %confCMAC_A = (
@@ -141,53 +131,35 @@ my %confCMAC_B = (
 );
 # CACC
 my %confCACC = (
-	0xffff2405 => 0xff, 		#NVDLA_CACC.D_DATAOUT_SIZE_1_0
 	0xffff2403 => 0x1000, 		#NVDLA_CACC.D_MISC_CFG_0
-	0xffff2406 => 0x1525f4a0, 	#NVDLA_CACC.D_DATAOUT_ADDR_0
-	0xffff240d => 0x7841af46, 	#NVDLA_CACC.D_CYA_0
-	0xffff2404 => 0xc000c, 		#NVDLA_CACC.D_DATAOUT_SIZE_0_0
-	0xffff2408 => 0x2e0, 		#NVDLA_CACC.D_LINE_STRIDE_0
-	0xffff2409 => 0x2640, 		#NVDLA_CACC.D_SURF_STRIDE_0
-	0xffff240b => 0x3, 			#NVDLA_CACC.D_CLIP_CFG_0
+	0xffff2404 => 0x0, 			#NVDLA_CACC.D_DATAOUT_SIZE_0_0
+	0xffff2405 => 0xf, 			#NVDLA_CACC.D_DATAOUT_SIZE_1_0
+	0xffff2406 => 0x80400000, 	#NVDLA_CACC.D_DATAOUT_ADDR_0
+	0xffff2408 => 0x20, 		#NVDLA_CACC.D_LINE_STRIDE_0
+	0xffff2409 => 0x20, 		#NVDLA_CACC.D_SURF_STRIDE_0
+	0xffff240a => 0x10001, 		#NVDLA_CACC.D_DATAOUT_MAP_0Line_packed, surf_packed
 );
 # SDP_RDMA
 my %confSDP_RDMA = (
+	0xffff2810 => 0x1b, 		#NVDLA_SDP_RDMA.D_NRDMA_CFG_0BRDMA_DATA_MODE=PER_ELEMENT, BRDMA_DATA_SIZE=TWO_BYTE, BRDMA_DATA_USE=ALU, BRDMA_DISABLE=YES
+	0xffff2816 => 0x1b, 		#NVDLA_SDP_RDMA.D_ERDMA_CFG_0BRDMA_DATA_MODE=PER_ELEMENT, BRDMA_DATA_SIZE=TWO_BYTE, BRDMA_DATA_USE=ALU, BRDMA_DISABLE=YES
+	0xffff280a => 0x1b, 		#NVDLA_SDP_RDMA.D_BRDMA_CFG_0BRDMA_DATA_MODE=PER_ELEMENT, BRDMA_DATA_SIZE=TWO_BYTE, BRDMA_DATA_USE=ALU, BRDMA_DISABLE=YES
 );
 # SDP
 my %confSDP = (
-	0xffff2c1e => 0x3100, 		#NVDLA_SDP.D_DP_BN_MUL_CFG_0
-	0xffff2c1f => 0x3949, 		#NVDLA_SDP.D_DP_BN_MUL_SRC_VALUE_0
-	0xffff2c21 => 0x2, 			#NVDLA_SDP.D_DP_EW_ALU_CFG_0
-	0xffff2c22 => 0xd9f0, 		#NVDLA_SDP.D_DP_EW_ALU_SRC_VALUE_0
-	0xffff2c19 => 0x1501, 		#NVDLA_SDP.D_DP_BS_MUL_CFG_0
-	0xffff2c14 => 0x1a0, 		#NVDLA_SDP.D_DST_LINE_STRIDE_0
-	0xffff2c23 => 0xb782acb7, 	#NVDLA_SDP.D_DP_EW_ALU_CVT_OFFSET_VALUE_0
-	0xffff2c11 => 0xff, 		#NVDLA_SDP.D_DATA_CUBE_CHANNEL_0
-	0xffff2c0f => 0xc, 			#NVDLA_SDP.D_DATA_CUBE_WIDTH_0
-	0xffff2c17 => 0x1501, 		#NVDLA_SDP.D_DP_BS_ALU_CFG_0
-	0xffff2c29 => 0x82f8, 		#NVDLA_SDP.D_DP_EW_MUL_CVT_SCALE_VALUE_0
-	0xffff2c2a => 0x3e, 		#NVDLA_SDP.D_DP_EW_MUL_CVT_TRUNCATE_VALUE_0
-	0xffff2c31 => 0x1, 			#NVDLA_SDP.D_CVT_SCALE_0
-	0xffff2c18 => 0xa282, 		#NVDLA_SDP.D_DP_BS_ALU_SRC_VALUE_0
-	0xffff2c28 => 0xc4b39a10, 	#NVDLA_SDP.D_DP_EW_MUL_CVT_OFFSET_VALUE_0
-    0xffff2c1a => 0xec14,		#NVDLA_SDP.D_DP_BS_MUL_SRC_VALUE_0
-    0xffff2c2b => 0x1c, 		#NVDLA_SDP.D_DP_EW_TRUNCATE_VALUE_0
-    0xffff2c16 => 0x12, 		#NVDLA_SDP.D_DP_BS_CFG_0
-    0xffff2c1d => 0x7fa8, 		#NVDLA_SDP.D_DP_BN_ALU_SRC_VALUE_0
-    0xffff2c2f => 0x5, 			#NVDLA_SDP.D_DATA_FORMAT_0
-    0xffff2c15 => 0x1520, 		#NVDLA_SDP.D_DST_SURFACE_STRIDE_0
-    0xffff2c20 => 0x23, 		#NVDLA_SDP.D_DP_EW_CFG_0
-    0xffff2c1b => 0x55, 		#NVDLA_SDP.D_DP_BN_CFG_0
-    0xffff2c25 => 0x14, 		#NVDLA_SDP.D_DP_EW_ALU_CVT_TRUNCATE_VALUE_0
-    0xffff2c2c => 0x1, 			#NVDLA_SDP.D_FEATURE_MODE_CFG_0
-    0xffff2c26 => 0x3, 			#NVDLA_SDP.D_DP_EW_MUL_CFG_0
-    0xffff2c12 => 0x50000020, 	#NVDLA_SDP.D_DST_BASE_ADDR_LOW_0
-    0xffff2c2e => 0xb14aa80, 	#NVDLA_SDP.D_DST_BATCH_STRIDE_0
-    0xffff2c37 => 0xc, 			#NVDLA_SDP.D_PERF_ENABLE_0
-    0xffff2c27 => 0x5f248652, 	#NVDLA_SDP.D_DP_EW_MUL_SRC_VALUE_0
-    0xffff2c10 => 0xc, 			#NVDLA_SDP.D_DATA_CUBE_HEIGHT_0
-    0xffff2c1c => 0x1, 			#NVDLA_SDP.D_DP_BN_ALU_CFG_0
-    0xffff2c24 => 0x780f, 		#NVDLA_SDP.D_DP_EW_ALU_CVT_SCALE_VALUE_0
+	0xffff2c11 => 0xf, 			#NVDLA_SDP.D_DATA_CUBE_CHANNEL_0
+	0xffff2c12 => 0x80400000, 	#NVDLA_SDP.D_DST_BASE_ADDR_LOW_04MB
+	0xffff2c14 => 0x20, 		#NVDLA_SDP.D_DST_LINE_STRIDE_0
+	0xffff2c15 => 0x20, 		#NVDLA_SDP.D_DST_SURFACE_STRIDE_01*1*32B
+	0xffff2c16 => 0x1a, 		#NVDLA_SDP.D_DP_BS_CFG_0BS_BYPASS=NO, BS_ALU_BYPASS=YES, BS_ALU_ALGO=SUM, BS_MUL_BYPASS=YES, BS_RELU_BYPASS=NO
+	0xffff2c17 => 0x2, 			#NVDLA_SDP.D_DP_BS_ALU_CFG_0SHIFT RIGHT, SHIFT_VALUE=0, SRC=REG
+	0xffff2c1a => 0x1, 			#NVDLA_SDP.D_DP_BS_MUL_SRC_VALUE_0
+	0xffff2c2c => 0x1, 			#NVDLA_SDP.D_FEATURE_MODE_CFG_0FLYING_MODE=ON, OUTPUT_DST=MEM, WINOGRAD=OFF, BATCH_NUMBER=0
+	0xffff2c1b => 0x1, 			#NVDLA_SDP.D_DP_BN_CFG_0BS_BYPASS=NO, BS_ALU_BYPASS=YES, BS_ALU_ALGO=SUM, BS_MUL_BYPASS=YES, BS_RELU_BYPASS=NO
+	0xffff2c20 => 0x1, 			#NVDLA_SDP.D_DP_EW_CFG_0BS_BYPASS=NO, BS_ALU_BYPASS=YES, BS_ALU_ALGO=SUM, BS_MUL_BYPASS=YES, BS_RELU_BYPASS=NO
+	0xffff2c2d => 0x1, 			#NVDLA_SDP.D_DST_DMA_CFG_0MC
+	0xffff2c2f => 0x5, 			#NVDLA_SDP.D_DATA_FORMAT_0INPUT_DATA=INT16, OUTPUT_DATA=INT16
+	0xffff2c31 => 0x1, 			#NVDLA_SDP.D_CVT_SCALE_0SCALE=1 to make all data not change in SDP
 );
 # PDP_RDMA
 my %confPDP_RDMA = (
@@ -202,29 +174,27 @@ my %confPDP_RDMA = (
     0xffff3006 => 0x1, 			#NVDLA_PDP_RDMA.D_FLYING_MODE_0
     0xffff3007 => 0x80000000, 	#NVDLA_PDP_RDMA.D_SRC_BASE_ADDR_LOW_0
     0xffff3005 => 0x3f, 		#NVDLA_PDP_RDMA.D_DATA_CUBE_IN_CHANNEL_0
-    0xffff3002 => 0x1, 			#NVDLA_PDP_RDMA.D_OP_ENABLE_0
 );
 # PDP
 my %confPDP = (
-	0xffff3406 => 0x6, #NVDLA_PDP.D_DATA_CUBE_OUT_WIDTH_0
-	0xffff340c => 0x701c07, #NVDLA_PDP.D_PARTIAL_WIDTH_OUT_0
-	0xffff341b => 0x800, #NVDLA_PDP.D_SRC_SURFACE_STRIDE_0
-	0xffff341a => 0x100, #NVDLA_PDP.D_SRC_LINE_STRIDE_0
-	0xffff3407 => 0x6, #NVDLA_PDP.D_DATA_CUBE_OUT_HEIGHT_0
-	0xffff340d => 0x101, #NVDLA_PDP.D_POOLING_KERNEL_CFG_0
-	0xffff3408 => 0x3f, #NVDLA_PDP.D_DATA_CUBE_OUT_CHANNEL_0
-	0xffff341e => 0xe0, #NVDLA_PDP.D_DST_LINE_STRIDE_0
-	0xffff3421 => 0x101, #NVDLA_PDP.D_DATA_FORMAT_0
-	0xffff3404 => 0x7, #NVDLA_PDP.D_DATA_CUBE_IN_HEIGHT_0
-	0xffff340b => 0x701c07, #NVDLA_PDP.D_PARTIAL_WIDTH_IN_0
-	0xffff3403 => 0x7, #NVDLA_PDP.D_DATA_CUBE_IN_WIDTH_0
-	0xffff3409 => 0x11, #NVDLA_PDP.D_OPERATION_MODE_CFG_0
-	0xffff341f => 0x620, #NVDLA_PDP.D_DST_SURFACE_STRIDE_0
-	0xffff3420 => 0x1, #NVDLA_PDP.D_DST_RAM_CFG_0
-	0xffff3405 => 0x3f, #NVDLA_PDP.D_DATA_CUBE_IN_CHANNEL_0
-	0xffff3418 => 0x80000000, #NVDLA_PDP.D_SRC_BASE_ADDR_LOW_0
-	0xffff341c => 0x80100000, #NVDLA_PDP.D_DST_BASE_ADDR_LOW_0
-	0xffff3402 => 0x1, #NVDLA_PDP.D_OP_ENABLE_0
+	0xffff3406 => 0x6, 			#NVDLA_PDP.D_DATA_CUBE_OUT_WIDTH_0
+	0xffff340c => 0x701c07, 	#NVDLA_PDP.D_PARTIAL_WIDTH_OUT_0
+	0xffff341b => 0x800, 		#NVDLA_PDP.D_SRC_SURFACE_STRIDE_0
+	0xffff341a => 0x100, 		#NVDLA_PDP.D_SRC_LINE_STRIDE_0
+	0xffff3407 => 0x6, 			#NVDLA_PDP.D_DATA_CUBE_OUT_HEIGHT_0
+	0xffff340d => 0x101, 		#NVDLA_PDP.D_POOLING_KERNEL_CFG_0
+	0xffff3408 => 0x3f, 		#NVDLA_PDP.D_DATA_CUBE_OUT_CHANNEL_0
+	0xffff341e => 0xe0, 		#NVDLA_PDP.D_DST_LINE_STRIDE_0
+	0xffff3421 => 0x101, 		#NVDLA_PDP.D_DATA_FORMAT_0
+	0xffff3404 => 0x7, 			#NVDLA_PDP.D_DATA_CUBE_IN_HEIGHT_0
+	0xffff340b => 0x701c07, 	#NVDLA_PDP.D_PARTIAL_WIDTH_IN_0
+	0xffff3403 => 0x7, 			#NVDLA_PDP.D_DATA_CUBE_IN_WIDTH_0
+	0xffff3409 => 0x11, 		#NVDLA_PDP.D_OPERATION_MODE_CFG_0
+	0xffff341f => 0x620, 		#NVDLA_PDP.D_DST_SURFACE_STRIDE_0
+	0xffff3420 => 0x1, 			#NVDLA_PDP.D_DST_RAM_CFG_0
+	0xffff3405 => 0x3f, 		#NVDLA_PDP.D_DATA_CUBE_IN_CHANNEL_0
+	0xffff3418 => 0x80000000, 	#NVDLA_PDP.D_SRC_BASE_ADDR_LOW_0
+	0xffff341c => 0x80100000, 	#NVDLA_PDP.D_DST_BASE_ADDR_LOW_0
 );
 
 ### Print instructions ###
@@ -286,9 +256,8 @@ my $sizeWeightData;
 my $filenameInput = "mnist.json";
 my $filenameOutput = "input.txn";
 
-my $command = '';
-while(!$command){
-	$command = shift;
+my $command = shift;
+while($command ne ""){
 	if($command eq '-f'){
 		$command = shift;
 		$filenameInput = $command;
@@ -297,6 +266,7 @@ while(!$command){
 		$command = shift;
 		$filenameOutput = $command;
 	}
+	$command = shift;
 }
 
 # Open files
@@ -350,13 +320,54 @@ while ($record = <FILEIN>) {
 									* $numOutputFeatureMapsK
 									* $byteWeightData);
 
+			
+			### Assign value of configure ###
+			# CDMA
+			$confCDMA{0xffff1407} = ($lenInputHeightH-0x1) * 0x10000 + ($lenInputWidthW-0x1); #NVDLA_CDMA.D_DATAIN_SIZE_0_08x8
+			#print  sprintf("0x%x",$confCDMA{0xffff1407});
+			$confCDMA{0xffff1408} = $numInputFeatureMapsC - 0x1; #NVDLA_CDMA.D_DATAIN_SIZE_1_0Channel: 32
+			$confCDMA{0xffff1410} = $lenInputHeightH * 0x20; #NVDLA_CDMA.D_LINE_STRIDE_0
+			$confCDMA{0xffff1412} = $lenInputHeightH * $lenInputWidthW * 0x20; #NVDLA_CDMA.D_SURF_STRIDE_0
+			$confCDMA{0xffff141b} = ceil($sizeWeightData/$numOutputFeatureMapsK) - 0x1; #NVDLA_CDMA.D_WEIGHT_SIZE_0_00x1000-1
+			$confCDMA{0xffff141c} = $numOutputFeatureMapsK; #NVDLA_CDMA.D_WEIGHT_SIZE_1_0
+			$confCDMA{0xffff1420} = $sizeWeightData; #NVDLA_CDMA.D_WEIGHT_BYTES_0
+			# CSC
+			$confCSC{0xffff1805} = ($lenInputHeightH-0x1) * 0x10000 + ($lenInputWidthW-0x1); #NVDLA_CSC.D_DATAIN_SIZE_EXT_0_08x8
+			$confCSC{0xffff1806} = $numInputFeatureMapsC - 0x1; #NVDLA_CSC.D_DATAIN_SIZE_EXT_1_0channel: 32
+			$confCSC{0xffff180b} = ($lenInputHeightH-0x1) * 0x10000 + ($lenInputWidthW-0x1); #NVDLA_CSC.D_WEIGHT_SIZE_EXT_0_0
+			$confCSC{0xffff180c} = $numOutputFeatureMapsK * 0x10000 + ($numInputFeatureMapsC - 0x1); #NVDLA_CSC.D_WEIGHT_SIZE_EXT_1_0
+			$confCSC{0xffff180d} = $sizeWeightData; #NVDLA_CSC.D_WEIGHT_BYTES_0
+			$confCSC{0xffff180f} = ($lenHeightAfterConvP-0x1) * 0x10000 + ($lenWidthAfterConvQ-0x1); #NVDLA_CSC.D_DATAOUT_SIZE_0_0
+			$confCSC{0xffff1810} = $numOutputFeatureMapsK; #NVDLA_CSC.D_DATAOUT_SIZE_1_0
+			# CACC
+			$confCACC{0xffff2404} = ($lenHeightAfterConvP-0x1) * 0x10000 + ($lenWidthAfterConvQ-0x1); #NVDLA_CACC.D_DATAOUT_SIZE_0_0
+			$confCACC{0xffff2405} = $numOutputFeatureMapsK; #NVDLA_CACC.D_DATAOUT_SIZE_1_0
+			$confCACC{0xffff2408} = $lenHeightAfterConvP * 0x20; #NVDLA_CACC.D_LINE_STRIDE_0
+			$confCACC{0xffff2409} = $lenHeightAfterConvP * $lenWidthAfterConvQ * 0x20; #NVDLA_CACC.D_SURF_STRIDE_0
+			# SDP
+			$confSDP{0xffff2c11} = $numOutputFeatureMapsK; #NVDLA_SDP.D_DATA_CUBE_CHANNEL_0
+			$confSDP{0xffff2c14} = $lenHeightAfterConvP * 0x20; #NVDLA_SDP.D_DST_LINE_STRIDE_0
+			$confSDP{0xffff2c15} = $lenHeightAfterConvP * $lenWidthAfterConvQ * 0x20; #NVDLA_SDP.D_DST_SURFACE_STRIDE_01*1*32B
+			# SDP_RDMA
+			# PDP
+			
+			# PDP_RDMA
+
+			# ENABLE
+			$enBlock{$CDMA_EN} = 0x1;
+			$enBlock{$CSC_EN} = 0x1;
+			$enBlock{$CACC_EN} = 0x1;
+			$enBlock{$SDP_EN} = 0x1;
+			printInstr('write_reg', $CDMA_EN, 0, %enBlock);
+			printInstr('write_reg', $CSC_EN, 0, %enBlock);
+			printInstr('write_reg', $CACC_EN, 0, %enBlock);
+			printInstr('write_reg', $SDP_EN, 0, %enBlock);
+			
 			print FILEOUT "\n\n";
 			### Generate (1)input feature map (2)weight instructions ###
 			# Gen hash table of load data
-			$tmpHex = sprintf("0x%x",$sizeInputData);
-			$dataLoad{0x80000000} = hex($tmpHex);
-			$tmpHex = sprintf("0x%x",$sizeWeightData);
-			$dataLoad{0x80100000} = hex($tmpHex);
+			$dataLoad{0x80000000} = $sizeInputData;
+			$dataLoad{0x80100000} = $sizeWeightData;
 			printInstr('load_mem', 0x80000000, 0, %dataLoad);
 			printInstr('load_mem', 0x80100000, 0, %dataLoad);
 			
