@@ -13,6 +13,21 @@ our $numInputFeatureMapsC0;
 our $lenInputHeightH0;
 our $lenInputWidthW0;
 
+
+our $ratioWeightCompression;
+our $swWinogradConv;
+our $swBatchedConv;
+our $swActivationEngine;
+our $swBDMAEngine;
+our $DataReshapeEngine;
+our $PoolingEngine;
+our $LRNEngine;
+our $sizeActivationEngine;
+our $sizePoolingEngine;
+our $sizeLRNEngine;
+our $maxMemoryReadLatency;
+
+
 ### Hardware config ###
 # Type of data(Byte)
 $byteInputData = 2;
@@ -38,3 +53,31 @@ $batchFc = 16;
 $numInputFeatureMapsC0 = 1;
 $lenInputHeightH0 = 28;
 $lenInputWidthW0 = 28;
+
+### Other hardware config ###
+# Compression
+$ratioWeightCompression = 0.8;
+
+# Convolution mode
+$swWinogradConv = 0;
+$swBatchedConv = 0;
+
+# Switches of modules 
+$swActivationEngine = 1;
+$swBDMAEngine = 1;
+$DataReshapeEngine = 0;
+$PoolingEngine = 1;
+$LRNEngine = 0;
+
+# Buffer size of modules(KB)
+$sizeActivationEngine = 32;
+$sizePoolingEngine = 32;
+$sizeLRNEngine = 32;
+
+# Memory Read latency tolerance(us)
+$maxMemoryReadLatency = 5;
+
+
+
+
+
