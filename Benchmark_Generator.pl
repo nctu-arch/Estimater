@@ -256,6 +256,11 @@ my $sizeWeightData;
 my $filenameInput = "mnist.json";
 my $filenameOutput = "input.txn";
 
+my $swInputPara = 1;
+my $filenameOutput_feature_map = "input_feature_map1.dat";
+my $filenameOutput_weight = "input_weight1.dat";
+
+
 my $command = shift;
 while($command ne ""){
 	if($command eq '-f'){
@@ -273,11 +278,14 @@ while($command ne ""){
 open (FILEIN, $filenameInput);
 open (FILEOUT, '>', $filenameOutput);
 
+open (FILEOUT_feature_map, '>', $filenameOutput_feature_map);
+open (FILEOUT_weight, '>', $filenameOutput_weight);
+
 # Parameters
 my $flag = "none";
 my $tmp;
 my $resultCnt = 0;
-my $tmpHex;
+my $hexTemp;
 
 # Input
 $numInputFeatureMapsC = $numInputFeatureMapsC0;
@@ -307,19 +315,22 @@ while ($record = <FILEIN>) {
 			# Assign output feature map, show # of Output Feature Maps(K)
 			$numOutputFeatureMapsK = $chOutputFeatureMaps;
 			
-			$sizeInputData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
-									* 16.0 
-									* ceil($lenInputHeightH / $lenVerticalConvStrideH)
-									* ceil($lenInputWidthW / $lenHorizontalConvStrideV)
-									* $byteInputData);
+			# $sizeInputData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
+			# 						* 16.0 
+			# 						* ceil($lenInputHeightH / $lenVerticalConvStrideH)
+			# 						* ceil($lenInputWidthW / $lenHorizontalConvStrideV)
+			# 						* $byteInputData);
 			
-			$sizeWeightData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
-									* 16.0
-									* ceil($lenFilterHeightR / $lenVerticalConvStrideH)
-									* ceil($lenFilterWidthS / $lenHorizontalConvStrideV)
-									* $numOutputFeatureMapsK
-									* $byteWeightData);
-
+			$sizeInputData = $numInputFeatureMapsC * $lenInputHeightH * $lenInputWidthW * $byteInputData;
+			
+			# $sizeWeightData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
+			# 						* 16.0
+			# 						* ceil($lenFilterHeightR / $lenVerticalConvStrideH)
+			# 						* ceil($lenFilterWidthS / $lenHorizontalConvStrideV)
+			# 						* $numOutputFeatureMapsK
+			# 						* $byteWeightData);
+			
+			$sizeWeightData = $numInputFeatureMapsC * $lenFilterHeightR * $lenFilterWidthS * $numOutputFeatureMapsK * $byteWeightData;
 			
 			### Assign value of configure ###
 			# CDMA
@@ -384,7 +395,56 @@ while ($record = <FILEIN>) {
 			printInstr('write_reg', $CMAC_B_base, $CMAC_B_shift, %confCMAC_B);
 			# CACC
 			printInstr('write_reg', $CACC_base, $CACC_shift, %confCACC);
-						
+			
+
+			### Generate input ###
+			if($swInputPara >= 1){
+				$swInputPara--;
+				# Feature Map
+				$hexTemp = sprintf("0x%x", $sizeInputData);
+				print FILEOUT_feature_map "Data_size = $hexTemp\n";
+				print FILEOUT_feature_map "Data_type = 0x25\n";
+				print FILEOUT_weight "Kernel_num=$numOutputFeatureMapsK\n";
+				print FILEOUT_feature_map "W = $lenInputWidthW\n";
+				print FILEOUT_feature_map "H = $lenInputHeightH\n";
+				print FILEOUT_feature_map "C = $numInputFeatureMapsC\n";
+				$hexTemp = sprintf("0x%x", $lenInputHeightH * 0x20);
+				print FILEOUT_feature_map "Line_stride = $hexTemp\n";
+				$hexTemp = sprintf("0x%x", $lenInputHeightH * $lenInputWidthW * 0x20);
+				print FILEOUT_feature_map "Surface_stride = $hexTemp\n";
+				print FILEOUT_feature_map "Precision = INT16\n";
+				# gen
+				for (my $i=0; $i < $sizeInputData; $i++) {
+					$hexTemp = sprintf("0x%02x", int(rand(256)));
+					print FILEOUT_feature_map "$hexTemp ";
+					if($i != 0 and ($i+1)%32==0){
+						print FILEOUT_feature_map "\n";
+					}
+				}
+				
+				# Weight
+				$hexTemp = sprintf("0x%x", $lenFilterHeightR);
+				print FILEOUT_weight "W=$hexTemp\n";
+				$hexTemp = sprintf("0x%x", $lenFilterWidthS);
+				print FILEOUT_weight "H=$hexTemp\n";
+				$hexTemp = sprintf("0x%x", $numInputFeatureMapsC);
+				print FILEOUT_weight "C=$hexTemp\n";
+				print FILEOUT_weight "Data_type=0x2\n";
+				$hexTemp = sprintf("0x%x", $numOutputFeatureMapsK);
+				print FILEOUT_weight "Kernel_num=$hexTemp\n";
+				print FILEOUT_weight "Precision=INT16\n";
+				$hexTemp = sprintf("0x%x", $sizeWeightData);
+				print FILEOUT_weight "Data_size=$hexTemp\n";
+				# gen
+				for (my $i=0; $i < $sizeWeightData; $i++) {
+					$hexTemp = sprintf("0x%02x", int(rand(256)));
+					print FILEOUT_weight "$hexTemp ";
+					if($i != 0 and ($i+1)%32==0){
+						print FILEOUT_weight "\n";
+					}
+				}
+			}
+			
 			# Assign activation(assign after output)
 			$numInputFeatureMapsC = $chOutputFeatureMaps;
 			$lenInputHeightH = $lenHeightAfter;
@@ -529,6 +589,8 @@ while ($record = <FILEIN>) {
 }
 
 close(FILEIN);
-close(FILEOUT); 
+close(FILEOUT);
+close(FILEOUT_feature_map);
+close(FILEOUT_weight);
 
 
