@@ -82,7 +82,7 @@ my $filenameInput = "mnist.json";
 my $filenameOutput = "Result.csv";
 
 my $command = shift;
-while(!$command){
+while($command ne ""){
 	if($command eq '-f'){
 		$command = shift;
 		$filenameInput = $command;
