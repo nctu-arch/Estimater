@@ -78,7 +78,7 @@ my $cycleMAX;
 my $pole;
 #-------------------------------#
 ### Define of File ###
-my $filenameInput = "mnist.json";
+my $filenameInput = "alexnet.json";
 my $filenameOutput = "Result.csv";
 
 my $command = shift;
@@ -164,8 +164,14 @@ while ($record = <FILEIN>) {
 			# Calculate num of layer
 			$index++;$swPoolingConv="TRUE";
 			# Calculate activation
-			$lenHeightAfter = ceil($lenInputHeightH/$lenVerticalConvStrideH);
-			$lenWidthAfter = ceil($lenInputWidthW/$lenHorizontalConvStrideV);
+			if($swZeroPaddingZ eq "FALSE"){
+				$lenHeightAfter = ceil(($lenInputHeightH-$lenFilterHeightR)/$lenVerticalConvStrideH)+1;
+				$lenWidthAfter = ceil(($lenInputWidthW-$lenFilterWidthS)/$lenHorizontalConvStrideV)+1;
+			}else{
+				$lenHeightAfter = ceil($lenInputHeightH/$lenVerticalConvStrideH);
+				$lenWidthAfter = ceil($lenInputWidthW/$lenHorizontalConvStrideV);
+			}
+			
 			# Record
 			$lenHeightAfterConvP = $lenHeightAfter;
 			$lenWidthAfterConvQ = $lenWidthAfter;
@@ -197,11 +203,12 @@ while ($record = <FILEIN>) {
 									* $numOutputFeatureMapsK
 									* $byteWeightData
 									/ 1024.0);
-									
-			$cycleMAC = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
-							* 16.0
-							* ceil($lenInputHeightH / $lenVerticalConvStrideH)
-							* ceil($lenInputWidthW / $lenHorizontalConvStrideV)
+			
+
+			$cycleMAC = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 32.0)
+							* 32.0
+							* $lenHeightAfterConvP
+							* $lenWidthAfterConvQ
 							* ceil($numOutputFeatureMapsK / 16.0)
 							* 16.0
 							* $lenFilterHeightR
@@ -209,9 +216,7 @@ while ($record = <FILEIN>) {
 							/ $lenVerticalConvStrideH
 							/ $lenHorizontalConvStrideV
 							/ $numMultiplier);
-				
-			
-						
+					
 			
 			# Assign activation(assign after output)
 			$numInputFeatureMapsC = $chOutputFeatureMaps;
@@ -272,7 +277,7 @@ while ($record = <FILEIN>) {
 				}
 			}
 			if($1 =~ /padding/){
-				$swZeroPaddingZ = "TRUE";
+				$swZeroPaddingZ = "FALSE";
 			}
 			if($1 =~ /strides/){
 				if($tmp =~ /\[(\d+)L, (\d+)L\]/i){
@@ -326,9 +331,9 @@ while ($record = <FILEIN>) {
 				# Do nothing
 			}
 		}
-		$lenFilterHeightR = 1;
-		$lenFilterWidthS = 1;
-		$swZeroPaddingZ = "TRUE";
+		$lenFilterHeightR = $lenInputHeightH;
+		$lenFilterWidthS = $lenInputWidthW;
+		$swZeroPaddingZ = "FALSE";
 		$lenVerticalConvStrideH = 1;
 		$lenHorizontalConvStrideV = 1;
    }
