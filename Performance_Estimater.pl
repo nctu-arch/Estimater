@@ -76,10 +76,21 @@ my $cycleDRAM;
 my $cycleMAC;
 my $cycleMAX;
 my $pole;
+
+#-------------------------------#
+### Define of list ###
+
+
+### Define of printing model ###
+my $model;
+my $modelIndex = 0;
+
 #-------------------------------#
 ### Define of File ###
-my $filenameInput = "alexnet.json";
+my $filenameInput = "mnist.json";
 my $filenameOutput = "Result.csv";
+
+
 
 my $command = shift;
 while($command ne ""){
@@ -105,7 +116,6 @@ open (FILEOUT, '>', $filenameOutput);
 # Parameters
 my $flag = "none";
 my $tmp;
-my $resultCnt = 0;
 
 # Input
 $numInputFeatureMapsC = $numInputFeatureMapsC0;
@@ -121,48 +131,17 @@ while ($record = <FILEIN>) {
    # Decider
    if($record =~ /"op": "(.*)"/i){
 		$tmp = $1;
-		if($1 =~ /conv/ || $1 =~ /pool/ || $1 =~ /dense/){
+		if($1 =~ /null/){ #/conv|pool|dense|batch|dense/
+			
+		}else{
 			$flag = $tmp;
 			print "$tmp\n";
 		}
    }elsif($record =~ /},/ && $flag =~ /^((?!none).)*$/){
 		if($flag =~ /conv/ || $flag =~ /dense/){
-			# Handle output
-			if($resultCnt <= 1 && $resultCnt > 0){
-				print FILEOUT ",,,,,,,";
-			}
-			if($resultCnt >= 1){
-				$resultCnt = 0;
-				# Mid Results of conv
-				# Part of calculate by NVIDIA formula
-				$sizeOutputData = ceil($lenHeightAfterPoolingA
-									* $lenWidthAfterPoolingB
-									* ceil($numOutputFeatureMapsK / 16.0)
-									* 16.0
-									* $byteInputData
-									/ 1024.0);
-									
-				
-				$sizeDRAMTraffic = $sizeInputData + $sizeOutputData + $sizeWeightData;
-				$cycleDRAM = $sizeDRAMTraffic 
-								/ $bwDRAM
-								* $freq;
-								
-				if($cycleDRAM > $cycleMAC){
-					$cycleMAX = $cycleDRAM;
-					$pole = "DRAM";
-				}else{
-					$cycleMAX = $cycleMAC;
-					$pole = "MAC";
-				}
-
-				#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeInputDataMin\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeWeightDataMin\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
-				print FILEOUT "$Calculation, $sizeInputData\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
-				
-				
-			}
+			
 			# Calculate num of layer
-			$index++;$swPoolingConv="TRUE";
+			$index++;
 			# Calculate activation
 			if($swZeroPaddingZ eq "FALSE"){
 				$lenHeightAfter = ceil(($lenInputHeightH-$lenFilterHeightR)/$lenVerticalConvStrideH)+1;
@@ -184,73 +163,90 @@ while ($record = <FILEIN>) {
 			if($attribute =~ /dense/){
 				$attribute = "fc," . $attribute
 			}
-			print FILEOUT "\n$index, $attribute, $numInputFeatureMapsC, $lenInputHeightH, $lenInputWidthW, $numOutputFeatureMapsK, $lenFilterHeightR, $lenFilterWidthS, $swZeroPaddingZ, $lenVerticalConvStrideH, $lenHorizontalConvStrideV, $lenHeightAfter, $lenWidthAfter,";
+			#print FILEOUT "\n$index, $attribute, $numInputFeatureMapsC, $lenInputHeightH, $lenInputWidthW, $numOutputFeatureMapsK, $lenFilterHeightR, $lenFilterWidthS, $swZeroPaddingZ, $lenVerticalConvStrideH, $lenHorizontalConvStrideV, $lenHeightAfter, $lenWidthAfter,";
 			
-			# Part of calculate by NVIDIA formula
-			$Calculation = $numInputFeatureMapsC * $numOutputFeatureMapsK * $lenFilterHeightR * $lenFilterWidthS * $lenHeightAfterConvP * $lenWidthAfterConvQ;
-			
-			$sizeInputData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
-									* 16.0 
-									* ceil($lenInputHeightH / $lenVerticalConvStrideH)
-									* ceil($lenInputWidthW / $lenHorizontalConvStrideV)
-									* $byteInputData
-									/ 1024.0);
-			
-			$sizeWeightData = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 16.0)
-									* 16.0
-									* ceil($lenFilterHeightR / $lenVerticalConvStrideH)
-									* ceil($lenFilterWidthS / $lenHorizontalConvStrideV)
-									* $numOutputFeatureMapsK
-									* $byteWeightData
-									/ 1024.0);
 			
 
-			$cycleMAC = ceil(ceil($numInputFeatureMapsC * $lenVerticalConvStrideH * $lenHorizontalConvStrideV / 32.0)
-							* 32.0
-							* $lenHeightAfterConvP
-							* $lenWidthAfterConvQ
-							* ceil($numOutputFeatureMapsK / 16.0)
-							* 16.0
-							* $lenFilterHeightR
-							* $lenFilterWidthS
-							/ $lenVerticalConvStrideH
-							/ $lenHorizontalConvStrideV
-							/ $numMultiplier);
+			#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeInputDataMin\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeWeightDataMin\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
+			#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
+			#print FILEOUT "\n$index, $attribute, $numInputFeatureMapsC, $lenInputHeightH, $lenInputWidthW, $numOutputFeatureMapsK, $lenFilterHeightR, $lenFilterWidthS, $swZeroPaddingZ, $lenVerticalConvStrideH, $lenHorizontalConvStrideV, $lenHeightAfter, $lenWidthAfter,";
 					
+			$model[$modelIndex]{index}=$index;
+			$model[$modelIndex]{attribute}=$attribute;
+			$model[$modelIndex]{numInputFeatureMapsC}=$numInputFeatureMapsC;
+			$model[$modelIndex]{lenInputHeightH}=$lenInputHeightH;
+			$model[$modelIndex]{lenInputWidthW}=$lenInputWidthW;
+			$model[$modelIndex]{numOutputFeatureMapsK}=$numOutputFeatureMapsK;
+			$model[$modelIndex]{lenFilterHeightR}=$lenFilterHeightR;
+			$model[$modelIndex]{lenFilterWidthS}=$lenFilterWidthS;
+			$model[$modelIndex]{swZeroPaddingZ}=$swZeroPaddingZ;
+			$model[$modelIndex]{lenVerticalConvStrideH}=$lenVerticalConvStrideH;
+			$model[$modelIndex]{lenHorizontalConvStrideV}=$lenHorizontalConvStrideV;
+			$model[$modelIndex]{lenHeightAfter}=$lenHeightAfter;
+			$model[$modelIndex]{lenWidthAfter}=$lenWidthAfter;
+			
+			$model[$modelIndex]{Calculation}=$Calculation;
+			$model[$modelIndex]{sizeInputData}=$sizeInputData;
+			$model[$modelIndex]{sizeOutputData}=$sizeOutputData;
+			$model[$modelIndex]{sizeWeightData}=$sizeWeightData;
+			$model[$modelIndex]{sizeDRAMTraffic}=$sizeDRAMTraffic;
+			$model[$modelIndex]{cycleDRAM}=$cycleDRAM;
+			$model[$modelIndex]{cycleMAC}=$cycleMAC;
+			$model[$modelIndex]{cycleMAX}=$cycleMAX;
+			$model[$modelIndex]{pole}=$pole;
+			
+			$model[$modelIndex]{lenHeightAfterConvP}=$lenHeightAfterConvP;
+			$model[$modelIndex]{lenWidthAfterConvQ}=$lenWidthAfterConvQ;
+			
+			$modelIndex++;
 			
 			# Assign activation(assign after output)
 			$numInputFeatureMapsC = $chOutputFeatureMaps;
 			$lenInputHeightH = $lenHeightAfter;
 			$lenInputWidthW = $lenWidthAfter;
 			
-			
-			
-			$resultCnt++;
+
 		}
 		if($flag =~ /pool/){
+		
+			$swPoolingConv="TRUE";
+			
 			# Calculate activation
 			$lenHeightAfter = ceil(($lenHeightAfter-$lenPoolingHeightD)/$lenVerticalPoolingStrideF);
 			$lenWidthAfter = ceil(($lenWidthAfter-$lenPoolingWidthE)/$lenHorizontalPoolingStrideG);
-
+			
 			# Record
 			$lenHeightAfterPoolingA = $lenHeightAfter;
 			$lenWidthAfterPoolingB = $lenWidthAfter;
 			
-			print FILEOUT "$swPoolingConv, $lenPoolingHeightD, $lenPoolingWidthE, $lenVerticalPoolingStrideF, $lenHorizontalPoolingStrideG, $lenHeightAfter, $lenWidthAfter,";
-				
+			#print FILEOUT "$swPoolingConv, $lenPoolingHeightD, $lenPoolingWidthE, $lenVerticalPoolingStrideF, $lenHorizontalPoolingStrideG, $lenHeightAfter, $lenWidthAfter,";
+			
+			$modelIndex--;
+			$model[$modelIndex]{swPoolingConv}=$swPoolingConv;
+			$model[$modelIndex]{lenPoolingHeightD}=$lenPoolingHeightD;
+			$model[$modelIndex]{lenPoolingWidthE}=$lenPoolingWidthE;
+			$model[$modelIndex]{lenVerticalPoolingStrideF}=$lenVerticalPoolingStrideF;
+			$model[$modelIndex]{lenHorizontalPoolingStrideG}=$lenHorizontalPoolingStrideG;
+			$model[$modelIndex]{lenHeightAfter}=$lenHeightAfter;
+			$model[$modelIndex]{lenWidthAfter}=$lenWidthAfter;
+			
+			$model[$modelIndex]{lenHeightAfterPoolingA}=$lenHeightAfterPoolingA;
+			$model[$modelIndex]{lenWidthAfterPoolingB}=$lenWidthAfterPoolingB;
+			
+			$modelIndex++;
+			
 			# Assign activation(assign after output)
 			$numInputFeatureMapsC = $chOutputFeatureMaps;
 			$lenInputHeightH = $lenHeightAfter;
 			$lenInputWidthW = $lenWidthAfter;
-			
-			$resultCnt += 2;
+
 		}
 
 		$flag = "none";
 		
 		
    }else{
-		if($flag =~ /conv/ || $flag =~ /pool/ || $flag =~ /dense/){
+		if($flag =~ /conv|pool|dense/){
 			
 		}else{
 			next;
@@ -270,17 +266,25 @@ while ($record = <FILEIN>) {
 				print "$tmp\n";
 			}
 			if($1 =~ /kernel_size/){
-				if($tmp =~ /\[(\d+)L, (\d+)L\]/i){
+				if($tmp =~ /[\[\(](\d+)L, (\d+)L[\]\)]/i){
 					$lenFilterHeightR = $1;
 					$lenFilterWidthS = $2;
 					print "$tmp, lenFilterHeightR = $1, lenFilterWidthS = $2\n";
 				}
 			}
 			if($1 =~ /padding/){
-				$swZeroPaddingZ = "FALSE";
+				if($tmp =~ /[\[\(](\d+)L, (\d+)L[\]\)]/i){
+					if($1 == 0){
+						$swZeroPaddingZ = "FALSE";
+					}else{
+						$swZeroPaddingZ = "TRUE";
+					}
+					
+				}
+				
 			}
 			if($1 =~ /strides/){
-				if($tmp =~ /\[(\d+)L, (\d+)L\]/i){
+				if($tmp =~ /[\[\(](\d+)L, (\d+)L[\]\)]/i){
 					$lenVerticalConvStrideH = $1;
 					$lenHorizontalConvStrideV = $2;
 					print "$tmp, lenVerticalConvStrideH = $1, lenHorizontalConvStrideV = $2\n";
@@ -300,14 +304,14 @@ while ($record = <FILEIN>) {
 				# Do nothing
 			}
 			if($1 =~ /pool_size/){
-				if($tmp =~ /\[(\d+)L, (\d+)L\]/i){
+				if($tmp =~ /[\[\(](\d+)L, (\d+)L[\]\)]/i){
 					$lenPoolingHeightD = $1;
 					$lenPoolingWidthE = $2;
 					print "$tmp, lenPoolingHeightD = $1, lenPoolingWidthE = $2\n";
 				}
 			}
 			if($1 =~ /strides/){
-				if($tmp =~ /\[(\d+)L, (\d+)L\]/i){
+				if($tmp =~ /[\[\(](\d+)L, (\d+)L[\]\)]/i){
 					$lenVerticalPoolingStrideF = $1;
 					$lenHorizontalPoolingStrideG = $2;
 					print "$tmp, lenVerticalPoolingStrideF = $1, lenHorizontalPoolingStrideG = $2\n";
@@ -338,45 +342,96 @@ while ($record = <FILEIN>) {
 		$lenHorizontalConvStrideV = 1;
    }
 }
-
 # Handle output
-if($resultCnt <= 1 && $resultCnt > 0){
-	print FILEOUT ",,,,,,,";
-}
-if($resultCnt >= 1){
-	$resultCnt = 0;
-	# Mid Results of conv
+for $i (0 .. $#model){
+	
 	# Part of calculate by NVIDIA formula
+	$model[$i]{Calculation} = $model[$i]{numInputFeatureMapsC} * $model[$i]{numOutputFeatureMapsK} * $model[$i]{lenFilterHeightR} * $model[$i]{lenFilterWidthS} * $model[$i]{lenHeightAfterConvP} * $model[$i]{lenWidthAfterConvQ};
 	
+	$model[$i]{sizeInputData} = ceil(ceil($model[$i]{numInputFeatureMapsC} * $model[$i]{lenVerticalConvStrideH} * $model[$i]{lenHorizontalConvStrideV} / 64.0) # 64 input channels
+							* 64.0 
+							* ceil($model[$i]{lenInputHeightH} / $model[$i]{lenVerticalConvStrideH})
+							* ceil($model[$i]{lenInputWidthW} / $model[$i]{lenHorizontalConvStrideV})
+							* $byteInputData
+							/ 1024.0);
 	
+	$model[$i]{sizeWeightData} = ceil(ceil($model[$i]{numInputFeatureMapsC} * $model[$i]{lenVerticalConvStrideH} * $model[$i]{lenHorizontalConvStrideV}) # weight is in DRAM
+							* ceil($model[$i]{lenFilterHeightR} / $model[$i]{lenVerticalConvStrideH})
+							* ceil($model[$i]{lenFilterWidthS} / $model[$i]{lenHorizontalConvStrideV})
+							* ceil($model[$i]{numOutputFeatureMapsK})
+							* $byteWeightData
+							/ 1024.0);
 	
 
-	$sizeOutputData = ceil($lenHeightAfterPoolingA
-						* $lenWidthAfterPoolingB
-						* ceil($numOutputFeatureMapsK / 16.0)
-						* 16.0
-						* $byteInputData
-						/ 1024.0);
+	$model[$i]{cycleMAC} = ceil(ceil($model[$i]{numInputFeatureMapsC} * $model[$i]{lenVerticalConvStrideH} * $model[$i]{lenHorizontalConvStrideV} / 64.0) # 64 input channels
+					* 64.0
+					* $model[$i]{lenHeightAfterConvP}
+					* $model[$i]{lenWidthAfterConvQ}
+					* ceil($model[$i]{numOutputFeatureMapsK} / 16.0) # 16 output channels
+					* 16.0
+					* $model[$i]{lenFilterHeightR}
+					* $model[$i]{lenFilterWidthS}
+					/ $model[$i]{lenVerticalConvStrideH}
+					/ $model[$i]{lenHorizontalConvStrideV}
+					/ $numMultiplier
+					* 16.0); # 16 cycle per MAC
+	
+	if($model[$i]{swPoolingConv} ne "TRUE"){
+		# Mid Results of conv
+		# Part of calculated by NVIDIA formula
+		$model[$i]{sizeOutputData} = ceil($model[$i]{lenHeightAfterConvP}
+							* $model[$i]{lenWidthAfterConvQ}
+							* ceil($model[$i]{numOutputFeatureMapsK} / 16.0)
+							* 16.0
+							* $byteInputData
+							/ 1024.0);
+							
+		
+		$model[$i]{sizeDRAMTraffic} = $model[$i]{sizeInputData} + $model[$i]{sizeOutputData} + $model[$i]{sizeWeightData};
+		$model[$i]{cycleDRAM} = $model[$i]{sizeDRAMTraffic }
+						/ $bwDRAM
+						* $freq;
 						
-	
-	$sizeDRAMTraffic = $sizeInputData + $sizeOutputData + $sizeWeightData;
-	$cycleDRAM = $sizeDRAMTraffic 
-					/ $bwDRAM
-					* $freq;
-					
-	if($cycleDRAM > $cycleMAC){
-		$cycleMAX = $cycleDRAM;
-		$pole = "DRAM";
+		if($model[$i]{cycleDRAM} > $model[$i]{cycleMAC}){
+			$model[$i]{cycleMAX} = $model[$i]{cycleDRAM};
+			$model[$i]{pole} = "DRAM";
+		}else{
+			$model[$i]{cycleMAX} = $model[$i]{cycleMAC};
+			$model[$i]{pole} = "MAC";
+		}
+		
+		print FILEOUT "$model[$i]{index}, $model[$i]{attribute}, $model[$i]{numInputFeatureMapsC}, $model[$i]{lenInputHeightH}, $model[$i]{lenInputWidthW}, $model[$i]{numOutputFeatureMapsK}, $model[$i]{lenFilterHeightR}, $model[$i]{lenFilterWidthS}, $model[$i]{swZeroPaddingZ}, $model[$i]{lenVerticalConvStrideH}, $model[$i]{lenHorizontalConvStrideV}, $model[$i]{lenHeightAfterConvP}, $model[$i]{lenWidthAfterConvQ},,,,,,,, $model[$i]{Calculation}, $model[$i]{sizeInputData}\KB, $model[$i]{sizeOutputData}\KB, $model[$i]{sizeWeightData}\KB, $model[$i]{sizeDRAMTraffic}\KB, $model[$i]{cycleDRAM}, $model[$i]{cycleMAC}, $model[$i]{cycleMAX}, $model[$i]{pole}\n";
 	}else{
-		$cycleMAX = $cycleMAC;
-		$pole = "MAC";
+		# Mid Results of conv
+		# Part of calculated by NVIDIA formula
+		$model[$i]{sizeOutputData} = ceil($model[$i]{lenHeightAfterPoolingA}
+							* $model[$i]{lenWidthAfterPoolingB}
+							* ceil($model[$i]{numOutputFeatureMapsK} / 16.0)
+							* 16.0
+							* $byteInputData
+							/ 1024.0);
+							
+		
+		$model[$i]{sizeDRAMTraffic} = $model[$i]{sizeInputData} + $model[$i]{sizeOutputData} + $model[$i]{sizeWeightData};
+		$model[$i]{cycleDRAM} = $model[$i]{sizeDRAMTraffic }
+						/ $bwDRAM
+						* $freq;
+						
+		if($model[$i]{cycleDRAM} > $model[$i]{cycleMAC}){
+			$model[$i]{cycleMAX} = $model[$i]{cycleDRAM};
+			$model[$i]{pole} = "DRAM";
+		}else{
+			$model[$i]{cycleMAX} = $model[$i]{cycleMAC};
+			$model[$i]{pole} = "MAC";
+		}
+	
+		print FILEOUT "$model[$i]{index}, $model[$i]{attribute}, $model[$i]{numInputFeatureMapsC}, $model[$i]{lenInputHeightH}, $model[$i]{lenInputWidthW}, $model[$i]{numOutputFeatureMapsK}, $model[$i]{lenFilterHeightR}, $model[$i]{lenFilterWidthS}, $model[$i]{swZeroPaddingZ}, $model[$i]{lenVerticalConvStrideH}, $model[$i]{lenHorizontalConvStrideV}, $model[$i]{lenHeightAfterConvP}, $model[$i]{lenWidthAfterConvQ}, $model[$i]{swPoolingConv}, $model[$i]{lenPoolingHeightD}, $model[$i]{lenPoolingWidthE}, $model[$i]{lenVerticalPoolingStrideF}, $model[$i]{lenHorizontalPoolingStrideG}, $model[$i]{lenHeightAfterPoolingA}, $model[$i]{lenWidthAfterPoolingB}, $model[$i]{Calculation}, $model[$i]{sizeInputData}\KB, $model[$i]{sizeOutputData}\KB, $model[$i]{sizeWeightData}\KB, $model[$i]{sizeDRAMTraffic}\KB, $model[$i]{cycleDRAM}, $model[$i]{cycleMAC}, $model[$i]{cycleMAX}, $model[$i]{pole}\n";
 	}
-
-	#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeInputDataMin\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeWeightDataMin\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
-	print FILEOUT "$Calculation, $sizeInputData\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
-	
-	
+				
 }
+#print FILEOUT "";
+			
+
 
 close(FILEIN);
 close(FILEOUT); 
