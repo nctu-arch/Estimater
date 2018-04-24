@@ -79,7 +79,7 @@ my $pole;
 
 #-------------------------------#
 ### Define of list ###
-
+my $nodeManager;
 
 ### Define of printing model ###
 my $model;
@@ -87,7 +87,7 @@ my $modelIndex = 0;
 
 #-------------------------------#
 ### Define of File ###
-my $filenameInput = "mnist.json";
+my $filenameInput = "inception_v1.json";
 my $filenameOutput = "Result.csv";
 
 
@@ -118,9 +118,7 @@ my $flag = "none";
 my $tmp;
 
 # Input
-$numInputFeatureMapsC = $numInputFeatureMapsC0;
-$lenInputHeightH = $lenInputHeightH0;
-$lenInputWidthW = $lenInputWidthW0;
+my $startBit = 1;
 
 # Output result
 print FILEOUT "Layer, Layer attribute, Layer name, #input feature maps(C), Input Height(H), Input Width(W), #output feature maps(K), Filter Height(R), Filter Width(S), Zero Padding(Z), Vertical Conv Srtide(H), Horizontal Conv Stride(V), Height after Conv(P), Width after Conv(Q), Pooling after Conv, Pooling Height(D), Pooling Width(E), Vertical pooling stride(F), Horizontal pooling stride(G), Height after Pooling(A), Height after Pooling(B), Calculation, Input data size, Output data size, Weight data size, DRAM Traffic, DRAM Cycles, MAC Cycles, MAX Cycle, Long Pole\n";
@@ -135,10 +133,41 @@ while ($record = <FILEIN>) {
 			
 		}else{
 			$flag = $tmp;
-			print "$tmp\n";
+			print "- $tmp\n";
 		}
-   }elsif($record =~ /},/ && $flag =~ /^((?!none).)*$/){
+		
+   }elsif($flag =~ /^((?!none).)*$/ && $record =~ /"inputs": \[(.*)\]/i){
+		$tmp = $1;
 		if($flag =~ /conv/ || $flag =~ /dense/){
+			
+			# Parse number of nodes -> "inputs"  
+			my $match;
+			if(@match=($tmp =~ /\[(\d+), \d+, \d+\]/ig)){
+				print "- conv&dense node: ";
+				for $i(0..$#match){
+					print "$match[$i] "
+				}
+				print "\n";
+			}
+			
+			# Find previous number of nodes
+			if($startBit == 1){
+				$startBit = 0;
+				$numInputFeatureMapsC = $numInputFeatureMapsC0;
+				$lenInputHeightH = $lenInputHeightH0;
+				$lenInputWidthW = $lenInputWidthW0;				
+			}else{
+				if($nodeManager[$match[0]-1]{takeBit} == 1){
+					$numInputFeatureMapsC = $nodeManager[$match[0]-1]{chOutputFeatureMaps};
+					$lenInputHeightH = $nodeManager[$match[0]-1]{lenHeightAfter};
+					$lenInputWidthW = $nodeManager[$match[0]-1]{lenWidthAfter};
+				}
+			}
+			
+			if($flag =~/dense/){
+				$lenFilterHeightR = $lenInputHeightH;
+				$lenFilterWidthS = $lenInputWidthW;
+			}
 			
 			# Calculate num of layer
 			$index++;
@@ -157,6 +186,14 @@ while ($record = <FILEIN>) {
 			# Assign output feature map, show # of Output Feature Maps(K)
 			$numOutputFeatureMapsK = $chOutputFeatureMaps;
 			
+			# Assign output feature map to number of node(model list)
+			# print "- conv&dense nodes: $1, $2, $3\n"				
+			$nodeManager[$match[$#match]]{chOutputFeatureMaps} = $chOutputFeatureMaps;
+			$nodeManager[$match[$#match]]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$match[$#match]]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$match[$#match]]{takeBit} = 1;
+			
+
 			if($attribute =~ /conv/){
 				$attribute = "conv," . $attribute
 			}
@@ -164,12 +201,12 @@ while ($record = <FILEIN>) {
 				$attribute = "fc," . $attribute
 			}
 			#print FILEOUT "\n$index, $attribute, $numInputFeatureMapsC, $lenInputHeightH, $lenInputWidthW, $numOutputFeatureMapsK, $lenFilterHeightR, $lenFilterWidthS, $swZeroPaddingZ, $lenVerticalConvStrideH, $lenHorizontalConvStrideV, $lenHeightAfter, $lenWidthAfter,";
-			
-			
 
 			#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeInputDataMin\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeWeightDataMin\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
 			#print FILEOUT "$Calculation, $sizeInputData\KB, $sizeOutputData\KB, $sizeWeightData\KB, $sizeDRAMTraffic\KB, $cycleDRAM, $cycleMAC, $cycleMAX, $pole";					
 			#print FILEOUT "\n$index, $attribute, $numInputFeatureMapsC, $lenInputHeightH, $lenInputWidthW, $numOutputFeatureMapsK, $lenFilterHeightR, $lenFilterWidthS, $swZeroPaddingZ, $lenVerticalConvStrideH, $lenHorizontalConvStrideV, $lenHeightAfter, $lenWidthAfter,";
+			
+			
 					
 			$model[$modelIndex]{index}=$index;
 			$model[$modelIndex]{attribute}=$attribute;
@@ -199,25 +236,40 @@ while ($record = <FILEIN>) {
 			$model[$modelIndex]{lenWidthAfterConvQ}=$lenWidthAfterConvQ;
 			
 			$modelIndex++;
-			
+									
 			# Assign activation(assign after output)
-			$numInputFeatureMapsC = $chOutputFeatureMaps;
-			$lenInputHeightH = $lenHeightAfter;
-			$lenInputWidthW = $lenWidthAfter;
-			
+			# $numInputFeatureMapsC = $chOutputFeatureMaps;
+			# $lenInputHeightH = $lenHeightAfter;
+			# $lenInputWidthW = $lenWidthAfter;
 
 		}
 		if($flag =~ /pool/){
-		
+			
+			# Parse number of nodes -> "inputs" 
+			if($tmp =~ /\[(\d+), \d+, \d+\]/i){
+				print "- pool node: $1\n"
+			}
+			if($nodeManager[$1-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$1-1]{chOutputFeatureMaps};
+				$lenInputHeightH = $nodeManager[$1-1]{lenHeightAfter};
+				$lenInputWidthW = $nodeManager[$1-1]{lenWidthAfter};
+			}
+			
 			$swPoolingConv="TRUE";
 			
 			# Calculate activation
-			$lenHeightAfter = ceil(($lenHeightAfter-$lenPoolingHeightD)/$lenVerticalPoolingStrideF);
-			$lenWidthAfter = ceil(($lenWidthAfter-$lenPoolingWidthE)/$lenHorizontalPoolingStrideG);
+			$lenHeightAfter = ceil(($lenHeightAfter-$lenPoolingHeightD)/$lenVerticalPoolingStrideF)+1;
+			$lenWidthAfter = ceil(($lenWidthAfter-$lenPoolingWidthE)/$lenHorizontalPoolingStrideG)+1;
 			
 			# Record
 			$lenHeightAfterPoolingA = $lenHeightAfter;
 			$lenWidthAfterPoolingB = $lenWidthAfter;
+			
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$1]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$1]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$1]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$1]{takeBit} = 1;
 			
 			#print FILEOUT "$swPoolingConv, $lenPoolingHeightD, $lenPoolingWidthE, $lenVerticalPoolingStrideF, $lenHorizontalPoolingStrideG, $lenHeightAfter, $lenWidthAfter,";
 			
@@ -234,12 +286,126 @@ while ($record = <FILEIN>) {
 			$model[$modelIndex]{lenWidthAfterPoolingB}=$lenWidthAfterPoolingB;
 			
 			$modelIndex++;
-			
-			# Assign activation(assign after output)
-			$numInputFeatureMapsC = $chOutputFeatureMaps;
-			$lenInputHeightH = $lenHeightAfter;
-			$lenInputWidthW = $lenWidthAfter;
 
+			# Assign activation(assign after output)
+			# $numInputFeatureMapsC = $chOutputFeatureMaps;
+			# $lenInputHeightH = $lenHeightAfter;
+			# $lenInputWidthW = $lenWidthAfter;
+
+		}
+		if($flag =~ /relu|softmax|__mul_scalar__|LRN|batch_norm|dropout/i){
+			# Parse number of nodes -> "inputs" 
+			if($tmp =~ /\[(\d+), \d+, \d+\]/i){
+				print "- other nodes: $1\n"
+			}
+			if($1 != 0 && $nodeManager[$1-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$1-1]{chOutputFeatureMaps};
+				$lenHeightAfter = $nodeManager[$1-1]{lenHeightAfter};
+				$lenWidthAfter = $nodeManager[$1-1]{lenWidthAfter};
+			}
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$1]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$1]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$1]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$1]{takeBit} = 1;
+		}
+		if($flag =~ /transpose/i){
+			# Parse number of nodes -> "inputs" 
+			if($tmp =~ /\[(\d+), \d+, \d+\]/i){
+				print "- flatten node: $1\n"
+			}
+			if($nodeManager[$1-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$1-1]{chOutputFeatureMaps};
+				$lenHeightAfter = $nodeManager[$1-1]{lenHeightAfter};
+				$lenWidthAfter = $nodeManager[$1-1]{lenWidthAfter};
+			}
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$1]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$1]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$1]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$1]{takeBit} = 1;
+		}
+		if($flag =~ /flatten/i){
+			# Parse number of nodes -> "inputs" 
+			if($tmp =~ /\[(\d+), \d+, \d+\]/i){
+				print "- flatten node: $1\n"
+			}
+			if($nodeManager[$1-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$1-1]{chOutputFeatureMaps};
+				$lenInputHeightH = $nodeManager[$1-1]{lenHeightAfter};
+				$lenInputWidthW = $nodeManager[$1-1]{lenWidthAfter};
+			}
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$1]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$1]{lenHeightAfter} = $lenInputHeightH;
+			$nodeManager[$1]{lenWidthAfter} = $lenInputWidthW;
+			$nodeManager[$1]{takeBit} = 1;
+		}
+		if($flag =~ /reshape/i){
+			# Parse number of nodes -> "inputs" 
+			if($tmp =~ /\[(\d+), \d+, \d+\]/i){
+				print "- reshape node: $1\n"
+			}
+			if($nodeManager[$1-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$1-1]{chOutputFeatureMaps};
+				$lenHeightAfter = $nodeManager[$1-1]{lenHeightAfter};
+				$lenWidthAfter = $nodeManager[$1-1]{lenWidthAfter};
+			}
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$1]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$1]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$1]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$1]{takeBit} = 1;
+		}
+		if($flag =~ /broadcast_add/){
+			my $match;
+			# Parse number of nodes -> "inputs" 
+			if(@match=($tmp =~ /\[(\d+), \d+, \d+\]/ig)){
+				print "- broadcast_add node: ";
+				for $i(0..$#match){
+					print "$match[$i] ";
+				}
+				print "\n";
+				
+			}
+			if($nodeManager[$match[0]-1]{takeBit} == 1){
+				$numInputFeatureMapsC = $nodeManager[$match[0]-1]{chOutputFeatureMaps};
+				$lenHeightAfter = $nodeManager[$match[0]-1]{lenHeightAfter};
+				$lenWidthAfter = $nodeManager[$match[0]-1]{lenWidthAfter};
+			}
+			# Assign output feature map to number of node(model list)			
+			$nodeManager[$match[$#match]]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$match[$#match]]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$match[$#match]]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$match[$#match]]{takeBit} = 1;
+		}
+		if($flag =~ /concatenate/){
+			my $match;
+			# Parse number of nodes -> "inputs" 
+			if(@match=($tmp =~ /\[(\d+), \d+, \d+\]/ig)){
+				print "- concatenate node: ";
+				for $i(0..$#match){
+					print "$match[$i] ";
+				}
+				print "\n";
+				
+			}
+			$numInputFeatureMapsC = 0;
+			for $i(0..$#match){
+				print "concat node: $match[$i], $nodeManager[$match[$i]-1]{chOutputFeatureMaps}\n";
+				$numInputFeatureMapsC = $numInputFeatureMapsC + $nodeManager[$match[$i]-1]{chOutputFeatureMaps};
+			}
+			
+			$lenHeightAfter = $nodeManager[$match[0]-1]{lenHeightAfter};
+			$lenWidthAfter = $nodeManager[$match[0]-1]{lenWidthAfter};
+
+			# Assign output feature map to number of node(model list)
+			$nodeManager[$match[$#match]]{chOutputFeatureMaps} = $numInputFeatureMapsC;
+			$nodeManager[$match[$#match]]{lenHeightAfter} = $lenHeightAfter;
+			$nodeManager[$match[$#match]]{lenWidthAfter} = $lenWidthAfter;
+			$nodeManager[$match[$#match]]{takeBit} = 1;
+
+			
 		}
 
 		$flag = "none";
@@ -335,8 +501,8 @@ while ($record = <FILEIN>) {
 				# Do nothing
 			}
 		}
-		$lenFilterHeightR = $lenInputHeightH;
-		$lenFilterWidthS = $lenInputWidthW;
+		# $lenFilterHeightR = $lenInputHeightH;
+		# $lenFilterWidthS = $lenInputWidthW;
 		$swZeroPaddingZ = "FALSE";
 		$lenVerticalConvStrideH = 1;
 		$lenHorizontalConvStrideV = 1;
@@ -429,9 +595,6 @@ for $i (0 .. $#model){
 	}
 				
 }
-#print FILEOUT "";
-			
-
 
 close(FILEIN);
 close(FILEOUT); 
