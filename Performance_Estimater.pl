@@ -87,7 +87,7 @@ my $modelIndex = 0;
 
 #-------------------------------#
 ### Define of File ###
-my $filenameInput = "inception_v1.json";
+my $filenameInput = "mobilenet.json";
 my $filenameOutput = "Result.csv";
 
 
@@ -514,8 +514,8 @@ for $i (0 .. $#model){
 	# Part of calculate by NVIDIA formula
 	$model[$i]{Calculation} = $model[$i]{numInputFeatureMapsC} * $model[$i]{numOutputFeatureMapsK} * $model[$i]{lenFilterHeightR} * $model[$i]{lenFilterWidthS} * $model[$i]{lenHeightAfterConvP} * $model[$i]{lenWidthAfterConvQ};
 	
-	$model[$i]{sizeInputData} = ceil(ceil($model[$i]{numInputFeatureMapsC} * $model[$i]{lenVerticalConvStrideH} * $model[$i]{lenHorizontalConvStrideV} / 64.0) # 64 input channels
-							* 64.0 
+	$model[$i]{sizeInputData} = ceil(ceil($model[$i]{numInputFeatureMapsC} * $model[$i]{lenVerticalConvStrideH} * $model[$i]{lenHorizontalConvStrideV} / 16.0) # 64 input channels but # is 16 in  data cube
+							* 16.0 
 							* ceil($model[$i]{lenInputHeightH} / $model[$i]{lenVerticalConvStrideH})
 							* ceil($model[$i]{lenInputWidthW} / $model[$i]{lenHorizontalConvStrideV})
 							* $byteInputData
