@@ -1,0 +1,5 @@
+Layer, Layer attribute, Layer name, #input feature maps(C), Input Height(H), Input Width(W), #output feature maps(K), Filter Height(R), Filter Width(S), Zero Padding(Z), Vertical Conv Srtide(H), Horizontal Conv Stride(V), Height after Conv(P), Width after Conv(Q), Pooling after Conv, Pooling Height(D), Pooling Width(E), Vertical pooling stride(F), Horizontal pooling stride(G), Height after Pooling(A), Height after Pooling(B), Calculation, Input data size, Output data size, Weight data size, DRAM Traffic, DRAM Cycles, MAC Cycles, MAX Cycle, Long Pole
+1, conv,conv2d0, 1, 28, 28, 32, 3, 3, FALSE, 1, 1, 26, 26,,,,,,,, 194688, 98KB, 43KB, 1KB, 142KB, 14200, 194688, 194688, MAC
+2, conv,conv2d1, 32, 26, 26, 32, 3, 3, FALSE, 1, 1, 24, 24, TRUE, 2, 2, 2, 2, 11, 11, 5308416, 85KB, 8KB, 18KB, 111KB, 11100, 165888, 165888, MAC
+3, fc,dense0, 32, 11, 11, 128, 11, 11, FALSE, 1, 1, 1, 1,,,,,,,, 495616, 16KB, 1KB, 968KB, 985KB, 98500, 15488, 98500, DRAM
+4, fc,dense1, 128, 1, 1, 10, 1, 1, FALSE, 1, 1, 1, 1,,,,,,,, 1280, 1KB, 1KB, 3KB, 5KB, 500, 32, 500, DRAM

@@ -1,0 +1,9 @@
+Layer, Layer attribute, Layer name, #input feature maps(C), Input Height(H), Input Width(W), #output feature maps(K), Filter Height(R), Filter Width(S), Zero Padding(Z), Vertical Conv Srtide(H), Horizontal Conv Stride(V), Height after Conv(P), Width after Conv(Q), Pooling after Conv, Pooling Height(D), Pooling Width(E), Vertical pooling stride(F), Horizontal pooling stride(G), Height after Pooling(A), Height after Pooling(B), Calculation, Input data size, Output data size, Weight data size, DRAM Traffic, DRAM Cycles, MAC Cycles, MAX Cycle, Long Pole
+1, conv,conv2d0,3,224,224,96,11,11, FALSE,4,4,55,55,TRUE,3,3,2,2,26,26,105415200, 392KB, 127KB, 81KB, 600KB,60000,2196150,2196150, MAC
+2, conv,conv2d1,96,26,26,256,5,5, FALSE,1,1,22,22,TRUE,3,3,2,2,10,10,297369600, 169KB, 50KB, 1200KB, 1419KB,141900,6195200,6195200, MAC
+3, conv,conv2d2,256,10,10,384,3,3, FALSE,1,1,8,8,,,,,,,,56623104, 50KB, 75KB, 1728KB, 1853KB,185300,884736,884736, MAC
+4, conv,conv2d3,384,8,8,384,3,3, FALSE,1,1,6,6,,,,,,,,47775744, 48KB, 75KB, 2592KB, 2715KB,271500,746496,746496, MAC
+5, conv,conv2d4,384,6,6,256,3,3, FALSE,1,1,4,4,TRUE,3,3,2,2,1,1,14155776, 27KB, 1KB, 1728KB, 1756KB,175600,221184,221184, MAC
+6, fc,dense0,256,1,1,4096,1,1, FALSE,1,1,1,1,,,,,,,,1048576, 1KB, 8KB, 2048KB, 2057KB,205700,16384,205700, DRAM
+7, fc,dense1,4096,1,1,4096,1,1, FALSE,1,1,1,1,,,,,,,,16777216, 8KB, 8KB, 32768KB, 32784KB,3278400,262144,3278400, DRAM
+8, fc,dense2,4096,1,1,1000,1,1, FALSE,1,1,1,1,,,,,,,,4096000, 8KB, 2KB, 8000KB, 8010KB,801000,64512,801000, DRAM
